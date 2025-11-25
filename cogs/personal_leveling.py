@@ -73,7 +73,7 @@ class PersonalLeveling(commands.Cog):
             return
         
         # Check if reaction is in announcements channel
-        if payload.channel_id != SERVER_ANNOUNCEMENTS_CHANNEL_ID:
+        if payload.channel_id != ANNOUNCEMENTS_CHANNEL_ID:
             return
         
         user_id = payload.user_id
@@ -114,7 +114,7 @@ class PersonalLeveling(commands.Cog):
     async def on_raw_reaction_remove(self, payload):
         """Event when a reaction is removed from a message"""
         # Check if reaction is in announcements channel
-        if payload.channel_id != SERVER_ANNOUNCEMENTS_CHANNEL_ID:
+        if payload.channel_id != ANNOUNCEMENTS_CHANNEL_ID:
             return
         
         user_id = payload.user_id
