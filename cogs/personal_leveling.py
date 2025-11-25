@@ -70,6 +70,7 @@ class PersonalLeveling(commands.Cog):
         # Check if command is in the correct channel
         if ctx.channel.id != COMMANDS_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
+            await ctx.message.delete(delay=3)
             return
         
         user_data = await get_user_data(ctx.author.id)

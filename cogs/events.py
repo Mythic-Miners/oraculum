@@ -42,6 +42,7 @@ class SyncEvents(commands.Cog):
         # Check if command is in the correct channel
         if ctx.channel.id != COMMANDS_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
+            await ctx.message.delete(delay=2)
             return
         
         await ctx.send("🔄 Starting manual synchronization...")
