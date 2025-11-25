@@ -1,5 +1,5 @@
 
-from utils.helpers import sync_all_users_to_mongodb
+from utils.helpers import sync_all_users_to_mongodb, sync_all_messages_to_mongodb
 from discord.ext import commands, tasks
 import discord
 
@@ -16,10 +16,16 @@ class SyncEvents(commands.Cog):
     async def sync_mongodb_redis(self):
         """Perform the actual synchronization from Redis to MongoDB every 10 minutes"""
         try:
-            sync_count = await sync_all_users_to_mongodb()
-            print(f"✅ Successfully synced {sync_count} users to MongoDB")
+            # Sync users
+            user_sync_count = await sync_all_users_to_mongodb()
+            print(f"✅ Successfully synced {user_sync_count} users to MongoDB")
+            
+            # Sync messages and delete from Redis
+            message_sync_count = await sync_all_messages_to_mongodb()
+            print(f"✅ Successfully synced {message_sync_count} messages to MongoDB")
+            
         except ImportError:
-            print("⚠️ sync_all_users_to_mongodb function not found in utils.helpers")
+            print("⚠️ Sync functions not found in utils.helpers")
         except Exception as e:
             print(f"❌ Sync error: {e}")
 

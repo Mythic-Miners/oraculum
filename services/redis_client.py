@@ -16,6 +16,16 @@ class RedisClient(object):
     async def get_keys(self, pattern):
         """Get all keys matching the pattern"""
         return await self.client.keys(pattern)
+    
+    async def delete(self, key):
+        """Delete a key from Redis"""
+        return await self.client.delete(key)
+    
+    async def delete_keys(self, keys):
+        """Delete multiple keys from Redis"""
+        if keys:
+            return await self.client.delete(*keys)
+        return 0
 
     async def close(self):
         await self.client.close()

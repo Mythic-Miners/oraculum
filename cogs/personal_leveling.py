@@ -1,5 +1,8 @@
 from utils.helpers import get_user_data, update_user_xp
+from services.redis_client import redis_client
+from time import strftime, gmtime
 from discord.ext import commands
+from json import dumps, loads
 from config import *
 import discord
 
@@ -15,6 +18,16 @@ class PersonalLeveling(commands.Cog):
             
         user_id = message.author.id
         
+        # Store message info in Redis for later deletion tracking
+        message_data = {
+            "user_id": user_id,
+            "xp_value": XP_FOR_MESSAGE,
+            "timestamp": strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        }
+        await redis_client.insert(f"message:{message.id}", dumps(message_data))
+        # Set expiration to 7 days (604800 seconds) to avoid filling Redis
+        await redis_client.client.expire(f"message:{message.id}", 604800)
+        
         # Add XP
         leveled_up, new_level = await update_user_xp(user_id, XP_FOR_MESSAGE)
         
@@ -25,13 +38,23 @@ class PersonalLeveling(commands.Cog):
             )
     
     @commands.Cog.listener()
-    async def on_message_delete(self, message):
-        """Event when a message is deleted and XP is decreased
-        """
-        if message.author.bot:
-            return
-
-        print(f"Message deleted from {message.author}: {message.content}")
+    async def on_raw_message_delete(self, payload):
+        """Event when a message is deleted - works for old messages too"""
+        # Try to get message info from Redis
+        message_key = f"message:{payload.message_id}"
+        cached_message = await redis_client.get(message_key)
+        
+        if cached_message:
+            message_data = loads(cached_message)
+            user_id = message_data.get("user_id")
+            xp_value = message_data.get("xp_value", XP_FOR_MESSAGE)
+            
+            if user_id:
+                # Decrease XP
+                await update_user_xp(user_id, -xp_value)
+                
+                # Clean up Redis
+                await redis_client.client.delete(message_key)
 
     # Example command to check stats
     @commands.command(name='stats')
