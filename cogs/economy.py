@@ -1,8 +1,8 @@
 from utils.helpers import get_user_data, redis_client
 from services.db_client import mongo_client
 from discord.ext import commands
-from time import time, gmtime, strftime
-from json import dumps, loads
+from json import dumps
+from time import time
 from config import *
 import discord
 

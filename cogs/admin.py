@@ -66,7 +66,7 @@ class Admin(commands.Cog):
             return
         
         # Check if item already exists
-        existing_item = mongo_client.db.marketplace_items.find_one({"name": name})
+        existing_item = mongo_client.db.discord_marketplace.find_one({"name": name})
         
         if existing_item:
             await ctx.send(f"❌ Item **{name}** already exists in the marketplace!")
@@ -82,7 +82,7 @@ class Admin(commands.Cog):
             "created_at": ctx.message.created_at.isoformat()
         }
         
-        mongo_client.db.marketplace_items.insert_one(item_data)
+        mongo_client.db.discord_marketplace.insert_one(item_data)
         
         embed = discord.Embed(
             title="✅ Item Added to Marketplace",
@@ -104,7 +104,7 @@ class Admin(commands.Cog):
             return
         
         # Check if item exists
-        result = mongo_client.db.marketplace_items.delete_one({"name": name})
+        result = mongo_client.db.discord_marketplace.delete_one({"name": name})
         
         if result.deleted_count == 0:
             await ctx.send(f"❌ Item **{name}** not found in marketplace!")
@@ -129,7 +129,7 @@ class Admin(commands.Cog):
             return
         
         # Check if item exists
-        existing_item = mongo_client.db.marketplace_items.find_one({"name": name})
+        existing_item = mongo_client.db.discord_marketplace.find_one({"name": name})
         
         if not existing_item:
             await ctx.send(f"❌ Item **{name}** not found in marketplace!")
@@ -151,7 +151,7 @@ class Admin(commands.Cog):
             return
         
         # Update item
-        mongo_client.db.marketplace_items.update_one(
+        mongo_client.db.discord_marketplace.update_one(
             {"name": name},
             {"$set": update_data}
         )
@@ -178,7 +178,7 @@ class Admin(commands.Cog):
             return
         
         # Check if item exists
-        existing_item = mongo_client.db.marketplace_items.find_one({"name": name})
+        existing_item = mongo_client.db.discord_marketplace.find_one({"name": name})
         
         if not existing_item:
             await ctx.send(f"❌ Item **{name}** not found in marketplace!")
@@ -187,7 +187,7 @@ class Admin(commands.Cog):
         # Toggle availability
         new_status = not existing_item.get("available", True)
         
-        mongo_client.db.marketplace_items.update_one(
+        mongo_client.db.discord_marketplace.update_one(
             {"name": name},
             {"$set": {"available": new_status}}
         )
@@ -210,7 +210,7 @@ class Admin(commands.Cog):
         if not await self.is_admin_channel(ctx):
             return
         
-        items = list(mongo_client.db.marketplace_items.find())
+        items = list(mongo_client.db.discord_marketplace.find())
         
         if not items:
             await ctx.send("📭 No items in marketplace yet!")
