@@ -12,6 +12,10 @@ class RedisClient(object):
 
     async def get(self, key):
         return await self.client.get(key)
+    
+    async def get_keys(self, pattern):
+        """Get all keys matching the pattern"""
+        return await self.client.keys(pattern)
 
     async def close(self):
         await self.client.close()

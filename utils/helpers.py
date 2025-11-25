@@ -15,9 +15,14 @@ async def get_user_data(user_id):
         return loads(cached_data)
         
     # Fallback to MongoDB
-    user_doc = mongo_client.find(USERS_COLLECTION_NAME, {"user_id": user_id})
-    if user_doc:
-        user_data = list(user_doc)[0]
+    user_doc = mongo_client.find("discord_users", {"user_id": user_id})
+    user_list = list(user_doc)
+    
+    if user_list:
+        user_data = user_list[0]
+        # Remove ObjectId before caching (not JSON serializable)
+        if "_id" in user_data:
+            del user_data["_id"]
         # Cache for next time
         await redis_client.insert(f"user:{user_id}", dumps(user_data))
         return user_data
@@ -82,7 +87,7 @@ async def sync_all_users_to_mongodb():
                     
                     if user_id:
                         # Update MongoDB
-                        mongo_client.db.users.update_one(
+                        mongo_client.db.discord_users.update_one(
                             {"user_id": user_id}, 
                             {"$set": user_data}, 
                             upsert=True
@@ -98,4 +103,3 @@ async def sync_all_users_to_mongodb():
     except Exception as e:
         print(f"❌ Error during bulk sync: {e}")
         return 0
-

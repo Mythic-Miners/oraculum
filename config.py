@@ -34,6 +34,3 @@ XP_EMOJI = "✨"
 MONEY_EMOJI = "🪙"
 LEVEL_UP_EMOJI = "🎉"
 STATS_EMOJI = "📊"
-
-# Database
-USERS_COLLECTION_NAME = "discord_users"
