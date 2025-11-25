@@ -150,3 +150,96 @@ async def sync_all_messages_to_mongodb():
     except Exception as e:
         print(f"❌ Error during message sync: {e}")
         return 0
+
+
+async def sync_all_reactions_to_mongodb():
+    """Sync all Redis reaction data to MongoDB and delete from Redis (called periodically)"""
+    try:
+        # Get all reaction keys from Redis
+        reaction_keys = await redis_client.get_keys("reaction:*")
+        
+        if not reaction_keys:
+            print("👍 No reactions to sync")
+            return 0
+        
+        sync_count = 0
+        keys_to_delete = []
+        
+        for key in reaction_keys:
+            try:
+                # Get reaction data from Redis
+                cached_data = await redis_client.get(key)
+                if cached_data:
+                    reaction_data = loads(cached_data)
+                    
+                    # Extract info from key (format: "reaction:message_id:user_id:emoji")
+                    key_str = key.decode('utf-8') if isinstance(key, bytes) else key
+                    parts = key_str.split(':')
+                    if len(parts) >= 4:
+                        reaction_data["message_id"] = int(parts[1])
+                        reaction_data["emoji"] = ':'.join(parts[3:])  # Handle emoji with colons
+                    
+                    # Insert into MongoDB
+                    mongo_client.db.discord_reactions.insert_one(reaction_data)
+                    sync_count += 1
+                    
+                    # Add key to deletion list
+                    keys_to_delete.append(key)
+                        
+            except Exception as e:
+                print(f"❌ Error syncing reaction {key}: {e}")
+        
+        # Delete all synced reactions from Redis
+        if keys_to_delete:
+            deleted_count = await redis_client.delete_keys(keys_to_delete)
+            print(f"🗑️ Deleted {deleted_count} reactions from Redis")
+                
+        print(f"👍 Synced {sync_count} reactions to MongoDB")
+        return sync_count
+        
+    except Exception as e:
+        print(f"❌ Error during reaction sync: {e}")
+        return 0
+
+
+async def sync_all_voice_sessions_to_mongodb():
+    """Sync all Redis voice session data to MongoDB and delete from Redis (called periodically)"""
+    try:
+        # Get all voice keys from Redis
+        voice_keys = await redis_client.get_keys("voice:*")
+        
+        if not voice_keys:
+            print("🎤 No voice sessions to sync")
+            return 0
+        
+        sync_count = 0
+        keys_to_delete = []
+        
+        for key in voice_keys:
+            try:
+                # Get voice data from Redis
+                cached_data = await redis_client.get(key)
+                if cached_data:
+                    voice_data = loads(cached_data)
+                    
+                    # Insert into MongoDB
+                    mongo_client.db.discord_voice_sessions.insert_one(voice_data)
+                    sync_count += 1
+                    
+                    # Add key to deletion list
+                    keys_to_delete.append(key)
+                        
+            except Exception as e:
+                print(f"❌ Error syncing voice session {key}: {e}")
+        
+        # Delete all synced voice sessions from Redis
+        if keys_to_delete:
+            deleted_count = await redis_client.delete_keys(keys_to_delete)
+            print(f"🗑️ Deleted {deleted_count} voice sessions from Redis")
+                
+        print(f"🎤 Synced {sync_count} voice sessions to MongoDB")
+        return sync_count
+        
+    except Exception as e:
+        print(f"❌ Error during voice session sync: {e}")
+        return 0

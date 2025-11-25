@@ -1,5 +1,5 @@
 
-from utils.helpers import sync_all_users_to_mongodb, sync_all_messages_to_mongodb
+from utils.helpers import sync_all_users_to_mongodb, sync_all_messages_to_mongodb, sync_all_reactions_to_mongodb, sync_all_voice_sessions_to_mongodb
 from discord.ext import commands, tasks
 from config import COMMANDS_CHANNEL_ID
 import discord
@@ -25,6 +25,14 @@ class SyncEvents(commands.Cog):
             message_sync_count = await sync_all_messages_to_mongodb()
             print(f"✅ Successfully synced {message_sync_count} messages to MongoDB")
             
+            # Sync reactions and delete from Redis
+            reaction_sync_count = await sync_all_reactions_to_mongodb()
+            print(f"✅ Successfully synced {reaction_sync_count} reactions to MongoDB")
+            
+            # Sync voice sessions and delete from Redis
+            voice_sync_count = await sync_all_voice_sessions_to_mongodb()
+            print(f"✅ Successfully synced {voice_sync_count} voice sessions to MongoDB")
+            
         except ImportError:
             print("⚠️ Sync functions not found in utils.helpers")
         except Exception as e:
@@ -35,7 +43,7 @@ class SyncEvents(commands.Cog):
         """Wait for the bot to be ready before starting the loop"""
         await self.bot.wait_until_ready()
 
-    @commands.command(name="sync_now")
+    @commands.command(name="sync")
     @commands.has_permissions(administrator=True)
     async def sync_now_command(self, ctx):
         """Manual command to execute synchronization immediately"""
