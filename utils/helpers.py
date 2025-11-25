@@ -243,3 +243,46 @@ async def sync_all_voice_sessions_to_mongodb():
     except Exception as e:
         print(f"❌ Error during voice session sync: {e}")
         return 0
+
+
+async def sync_economy_claims_to_mongodb():
+    """Sync all Redis economy claims (daily/weekly) to MongoDB and delete from Redis"""
+    try:
+        # Get all claim keys from Redis
+        claim_keys = await redis_client.get_keys("claim:*")
+        
+        if not claim_keys:
+            print("💰 No economy claims to sync")
+            return 0
+        
+        sync_count = 0
+        keys_to_delete = []
+        
+        for key in claim_keys:
+            try:
+                # Get claim data from Redis
+                cached_data = await redis_client.get(key)
+                if cached_data:
+                    claim_data = loads(cached_data)
+                    
+                    # Insert into MongoDB
+                    mongo_client.db.economy_claims.insert_one(claim_data)
+                    sync_count += 1
+                    
+                    # Add key to deletion list
+                    keys_to_delete.append(key)
+                        
+            except Exception as e:
+                print(f"❌ Error syncing economy claim {key}: {e}")
+        
+        # Delete all synced claims from Redis
+        if keys_to_delete:
+            deleted_count = await redis_client.delete_keys(keys_to_delete)
+            print(f"🗑️ Deleted {deleted_count} economy claims from Redis")
+                
+        print(f"💰 Synced {sync_count} economy claims to MongoDB")
+        return sync_count
+        
+    except Exception as e:
+        print(f"❌ Error during economy claims sync: {e}")
+        return 0
