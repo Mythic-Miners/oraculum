@@ -1,4 +1,4 @@
-from utils.helpers import sync_all_users_to_mongodb, sync_all_messages_to_mongodb, sync_all_reactions_to_mongodb, sync_all_voice_sessions_to_mongodb, sync_economy_claims_to_mongodb
+from utils.helpers import sync_all_users_to_mongodb, sync_all_messages_to_mongodb, sync_all_reactions_to_mongodb, sync_all_voice_sessions_to_mongodb, sync_economy_claims_to_mongodb, sync_marketplace_purchases_to_mongodb
 from services.db_client import mongo_client
 from discord.ext import commands
 from config import *
@@ -46,6 +46,10 @@ class Admin(commands.Cog):
             # Sync economy claims and delete from Redis
             economy_sync_count = await sync_economy_claims_to_mongodb()
             await ctx.send(f"✅ Synced {economy_sync_count} economy claims to MongoDB")
+            
+            # Sync marketplace purchases and delete from Redis
+            purchases_sync_count = await sync_marketplace_purchases_to_mongodb()
+            await ctx.send(f"✅ Synced {purchases_sync_count} marketplace purchases to MongoDB")
             
             await ctx.send("✅ **Synchronization completed!**")
             

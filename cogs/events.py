@@ -1,5 +1,5 @@
 
-from utils.helpers import sync_all_users_to_mongodb, sync_all_messages_to_mongodb, sync_all_reactions_to_mongodb, sync_all_voice_sessions_to_mongodb, sync_economy_claims_to_mongodb
+from utils.helpers import sync_all_users_to_mongodb, sync_all_messages_to_mongodb, sync_all_reactions_to_mongodb, sync_all_voice_sessions_to_mongodb, sync_economy_claims_to_mongodb, sync_marketplace_purchases_to_mongodb
 from discord.ext import commands, tasks
 from config import COMMANDS_CHANNEL_ID
 import discord
@@ -36,6 +36,10 @@ class SyncEvents(commands.Cog):
             # Sync economy claims and delete from Redis
             economy_sync_count = await sync_economy_claims_to_mongodb()
             print(f"✅ Successfully synced {economy_sync_count} economy claims to MongoDB")
+            
+            # Sync marketplace purchases and delete from Redis
+            purchases_sync_count = await sync_marketplace_purchases_to_mongodb()
+            print(f"✅ Successfully synced {purchases_sync_count} marketplace purchases to MongoDB")
             
         except ImportError:
             print("⚠️ Sync functions not found in utils.helpers")
