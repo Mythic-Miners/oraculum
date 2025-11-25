@@ -47,20 +47,6 @@ class SyncEvents(commands.Cog):
         """Wait for the bot to be ready before starting the loop"""
         await self.bot.wait_until_ready()
 
-    @commands.command(name="sync")
-    @commands.has_permissions(administrator=True)
-    async def sync_now_command(self, ctx):
-        """Manual command to execute synchronization immediately"""
-        # Check if command is in the correct channel
-        if ctx.channel.id != COMMANDS_CHANNEL_ID:
-            await ctx.message.add_reaction("❌")
-            await ctx.message.delete(delay=2)
-            return
-        
-        await ctx.send("🔄 Starting manual synchronization...")
-        await self.sync_mongodb_redis()
-        await ctx.send("✅ Synchronization completed!")
-
 
 async def setup(bot):
     await bot.add_cog(SyncEvents(bot))
