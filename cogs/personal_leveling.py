@@ -33,9 +33,16 @@ class PersonalLeveling(commands.Cog):
         
         # Check if leveled up
         if leveled_up:
-            await message.channel.send(
-                f"{LEVEL_UP_EMOJI} {message.author.mention} leveled up to **{LEVEL_PREFIX} {new_level}**!"
-            )
+            notifications_channel = self.bot.get_channel(NOTIFICATIONS_CHANNEL_ID)
+            if notifications_channel:
+                await notifications_channel.send(
+                    f"{LEVEL_UP_EMOJI} {message.author.mention} leveled up to **{LEVEL_PREFIX} {new_level}**!"
+                )
+            else:
+                # Fallback to current channel if notifications channel not found
+                await message.channel.send(
+                    f"{LEVEL_UP_EMOJI} {message.author.mention} leveled up to **{LEVEL_PREFIX} {new_level}**!"
+                )
     
     @commands.Cog.listener()
     async def on_raw_message_delete(self, payload):
@@ -60,6 +67,11 @@ class PersonalLeveling(commands.Cog):
     @commands.command(name='stats')
     async def check_stats(self, ctx):
         """Command to check current stats"""
+        # Check if command is in the correct channel
+        if ctx.channel.id != COMMANDS_CHANNEL_ID:
+            await ctx.message.add_reaction("❌")
+            return
+        
         user_data = await get_user_data(ctx.author.id)
         
         if not user_data:
@@ -76,7 +88,7 @@ class PersonalLeveling(commands.Cog):
             inline=True
         )
         embed.add_field(
-            name=f"{LEVEL_NAME}", 
+            name=f"{LEVEL_UP_EMOJI} {LEVEL_NAME}", 
             value=f"{LEVEL_PREFIX} {user_data[LEVEL_PREFIX.lower()]}",
             inline=True
         )

@@ -1,6 +1,7 @@
 
 from utils.helpers import sync_all_users_to_mongodb, sync_all_messages_to_mongodb
 from discord.ext import commands, tasks
+from config import COMMANDS_CHANNEL_ID
 import discord
 
 
@@ -38,6 +39,11 @@ class SyncEvents(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def sync_now_command(self, ctx):
         """Manual command to execute synchronization immediately"""
+        # Check if command is in the correct channel
+        if ctx.channel.id != COMMANDS_CHANNEL_ID:
+            await ctx.message.add_reaction("❌")
+            return
+        
         await ctx.send("🔄 Starting manual synchronization...")
         await self.sync_mongodb_redis()
         await ctx.send("✅ Synchronization completed!")
