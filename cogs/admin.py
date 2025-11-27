@@ -2,7 +2,7 @@ from services.sync_manager import sync_all_data_to_mongodb
 from services.cache_manager import cleanup_all_expired_keys
 from services.db_client import mongo_client
 from discord.ext import commands
-import config
+import config # type: ignore
 import discord
 
 

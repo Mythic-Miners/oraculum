@@ -1,7 +1,7 @@
 from services.redis_client import RedisClient
 from services.db_client import DBClient
 from json import loads, dumps
-import config
+import config # type: ignore
 
 
 redis_client = RedisClient()

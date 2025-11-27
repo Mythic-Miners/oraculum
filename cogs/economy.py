@@ -3,7 +3,7 @@ from services.db_client import mongo_client
 from discord.ext import commands
 from json import dumps
 from time import time
-import config
+import config # type: ignore
 import discord
 
 
