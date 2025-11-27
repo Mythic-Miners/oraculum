@@ -1,10 +1,9 @@
 from pymongo import MongoClient
-from config import MONGODB_URI
-
+import config # type: ignore
 
 class DBClient(object):
     def __init__(self):
-        self.client = MongoClient(MONGODB_URI)
+        self.client = MongoClient(config.MONGODB_URI)
         self.db = self.client.get_default_database()
 
     def insert(self, collection_name, document):

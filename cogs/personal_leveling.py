@@ -3,7 +3,7 @@ from services.redis_client import redis_client
 from time import strftime, gmtime
 from discord.ext import commands
 from json import dumps, loads
-from config import *
+import config # type: ignore
 import discord
 
 
@@ -23,7 +23,7 @@ class PersonalLeveling(commands.Cog):
         # Store message info in Redis for later deletion tracking
         message_data = {
             "user_id": user_id,
-            "xp_value": XP_FOR_MESSAGE,
+            "xp_value": config.XP_FOR_MESSAGE,
             "timestamp": strftime("%Y-%m-%d %H:%M:%S", gmtime())
         }
         await redis_client.insert(f"message:{message.id}", dumps(message_data))
@@ -31,19 +31,19 @@ class PersonalLeveling(commands.Cog):
         await redis_client.client.expire(f"message:{message.id}", 604800)
         
         # Add XP
-        leveled_up, new_level = await update_user_xp(user_id, XP_FOR_MESSAGE)
+        leveled_up, new_level = await update_user_xp(user_id, config.XP_FOR_MESSAGE)
         
         # Check if leveled up
         if leveled_up:
-            notifications_channel = self.bot.get_channel(NOTIFICATIONS_CHANNEL_ID)
+            notifications_channel = self.bot.get_channel(config.NOTIFICATIONS_CHANNEL_ID)
             if notifications_channel:
                 await notifications_channel.send(
-                    f"{LEVEL_UP_EMOJI} {message.author.mention} leveled up to **{LEVEL_PREFIX} {new_level}**!"
+                    f"{config.LEVEL_UP_EMOJI} {message.author.mention} leveled up to **{config.LEVEL_PREFIX} {new_level}**!"
                 )
             else:
                 # Fallback to current channel if notifications channel not found
                 await message.channel.send(
-                    f"{LEVEL_UP_EMOJI} {message.author.mention} leveled up to **{LEVEL_PREFIX} {new_level}**!"
+                    f"{config.LEVEL_UP_EMOJI} {message.author.mention} leveled up to **{config.LEVEL_PREFIX} {new_level}**!"
                 )
     
     @commands.Cog.listener()
@@ -56,7 +56,7 @@ class PersonalLeveling(commands.Cog):
         if cached_message:
             message_data = loads(cached_message)
             user_id = message_data.get("user_id")
-            xp_value = message_data.get("xp_value", XP_FOR_MESSAGE)
+            xp_value = message_data.get("xp_value", config.XP_FOR_MESSAGE)
             
             if user_id:
                 # Decrease XP
@@ -73,7 +73,7 @@ class PersonalLeveling(commands.Cog):
             return
         
         # Check if reaction is in announcements channel
-        if payload.channel_id != ANNOUNCEMENTS_CHANNEL_ID:
+        if payload.channel_id != config.ANNOUNCEMENTS_CHANNEL_ID:
             return
         
         user_id = payload.user_id
@@ -91,7 +91,7 @@ class PersonalLeveling(commands.Cog):
         reaction_data = {
             "user_id": user_id,
             "message_id": payload.message_id,
-            "xp_value": XP_FOR_REACT,
+            "xp_value": config.XP_FOR_REACT,
             "timestamp": strftime("%Y-%m-%d %H:%M:%S", gmtime())
         }
         await redis_client.insert(reaction_key, dumps(reaction_data))
@@ -99,22 +99,22 @@ class PersonalLeveling(commands.Cog):
         await redis_client.client.expire(reaction_key, 2592000)
         
         # Add XP for reaction
-        leveled_up, new_level = await update_user_xp(user_id, XP_FOR_REACT)
+        leveled_up, new_level = await update_user_xp(user_id, config.XP_FOR_REACT)
         
         # Check if leveled up
         if leveled_up:
-            notifications_channel = self.bot.get_channel(NOTIFICATIONS_CHANNEL_ID)
+            notifications_channel = self.bot.get_channel(config.NOTIFICATIONS_CHANNEL_ID)
             if notifications_channel:
                 member = payload.member
                 await notifications_channel.send(
-                    f"{LEVEL_UP_EMOJI} {member.mention} leveled up to **{LEVEL_PREFIX} {new_level}**!"
+                    f"{config.LEVEL_UP_EMOJI} {member.mention} leveled up to **{config.LEVEL_PREFIX} {new_level}**!"
                 )
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         """Event when a reaction is removed from a message"""
         # Check if reaction is in announcements channel
-        if payload.channel_id != ANNOUNCEMENTS_CHANNEL_ID:
+        if payload.channel_id != config.ANNOUNCEMENTS_CHANNEL_ID:
             return
         
         user_id = payload.user_id
@@ -125,7 +125,7 @@ class PersonalLeveling(commands.Cog):
         
         if cached_reaction:
             reaction_data = loads(cached_reaction)
-            xp_value = reaction_data.get("xp_value", XP_FOR_REACT)
+            xp_value = reaction_data.get("xp_value", config.XP_FOR_REACT)
             
             # Decrease XP
             await update_user_xp(user_id, -xp_value)
@@ -164,7 +164,7 @@ class PersonalLeveling(commands.Cog):
                 
                 if minutes_spent > 0:
                     # Calculate XP based on minutes
-                    xp_gain = minutes_spent * XP_FOR_VOICE_MINUTE
+                    xp_gain = minutes_spent * config.XP_FOR_VOICE_MINUTE
                     
                     # Add XP
                     leveled_up, new_level = await update_user_xp(user_id, xp_gain)
@@ -183,10 +183,10 @@ class PersonalLeveling(commands.Cog):
                     
                     # Check if leveled up
                     if leveled_up:
-                        notifications_channel = self.bot.get_channel(NOTIFICATIONS_CHANNEL_ID)
+                        notifications_channel = self.bot.get_channel(config.NOTIFICATIONS_CHANNEL_ID)
                         if notifications_channel:
                             await notifications_channel.send(
-                                f"{LEVEL_UP_EMOJI} {member.mention} leveled up to **{LEVEL_PREFIX} {new_level}**!"
+                                f"{config.LEVEL_UP_EMOJI} {member.mention} leveled up to **{config.LEVEL_PREFIX} {new_level}**!"
                             )
                 
                 # Remove session
@@ -204,7 +204,7 @@ class PersonalLeveling(commands.Cog):
     async def check_stats(self, ctx):
         """Command to check current stats"""
         # Check if command is in the correct channel
-        if ctx.channel.id != COMMANDS_CHANNEL_ID:
+        if ctx.channel.id != config.COMMANDS_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
             await ctx.message.delete(delay=3)
             return
@@ -216,22 +216,22 @@ class PersonalLeveling(commands.Cog):
             return
         
         embed = discord.Embed(
-            title=f"{STATS_EMOJI} Your Stats",
+            title=f"{config.STATS_EMOJI} Your Stats",
             color=0x00ff00
         )
         embed.add_field(
-            name=f"{XP_EMOJI} {XP_POINTS_NAME}", 
-            value=f"{user_data[XP_POINTS_PREFIX.lower()]} {XP_POINTS_PREFIX}", 
+            name=f"{config.XP_EMOJI} {config.XP_POINTS_NAME}", 
+            value=f"{user_data[config.XP_POINTS_PREFIX.lower()]} {config.XP_POINTS_PREFIX}", 
             inline=True
         )
         embed.add_field(
-            name=f"{LEVEL_EMOJI} {LEVEL_NAME}", 
-            value=f"{LEVEL_PREFIX} {user_data[LEVEL_PREFIX.lower()]}",
+            name=f"{config.LEVEL_EMOJI} {config.LEVEL_NAME}", 
+            value=f"{config.LEVEL_PREFIX} {user_data[config.LEVEL_PREFIX.lower()]}",
             inline=True
         )
         embed.add_field(
-            name=f"{MONEY_EMOJI} {MONEY_NAME}", 
-            value=f"{user_data.get(MONEY_PREFIX.lower(), 0)} {MONEY_PREFIX}", 
+            name=f"{config.MONEY_EMOJI} {config.MONEY_NAME}", 
+            value=f"{user_data.get(config.MONEY_PREFIX.lower(), 0)} {config.MONEY_PREFIX}", 
             inline=True
         )
         embed.set_thumbnail(url=ctx.author.display_avatar.url)

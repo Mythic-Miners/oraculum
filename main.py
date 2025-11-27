@@ -1,8 +1,8 @@
 from discord.ext import commands
 from discord import Intents
 from os import listdir
-import sys
 import importlib.util
+import sys
 
 
 def load_config(config_path):

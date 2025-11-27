@@ -3,13 +3,13 @@ from services.db_client import mongo_client
 from discord.ext import commands
 from time import gmtime, strftime
 from json import dumps
-from config import *
+import config # type: ignore
 import discord
 
 
-class GameWalletModal(discord.ui.Modal, title="Enter Your Game Wallet"):
+class GameWalletModal(discord.ui.Modal, title="Enter Your in-Game Wallet"):
     wallet = discord.ui.TextInput(
-        label="Game Wallet Address",
+        label="In-Game Wallet Address",
         placeholder="Enter your in-game wallet address here...",
         required=True,
         max_length=100
@@ -29,18 +29,18 @@ class GameWalletModal(discord.ui.Modal, title="Enter Your Game Wallet"):
         wallet_address = self.wallet.value
         
         # Create ticket in claimed rewards channel with wallet
-        claimed_channel = self.bot.get_channel(CLAIMED_REWARDS_CHANNEL_ID)
+        claimed_channel = self.bot.get_channel(config.CLAIMED_REWARDS_CHANNEL_ID)
         if claimed_channel:
             ticket_embed = discord.Embed(
                 title="🎟️ New Purchase Claim",
-                description="A user has made a purchase and provided their game wallet",
+                description="A user has made a purchase and provided their in-game wallet",
                 color=0x00ff00
             )
             ticket_embed.add_field(name="User", value=f"{interaction.user.mention} ({self.username})", inline=False)
             ticket_embed.add_field(name="Discord User ID", value=str(self.user_id), inline=True)
-            ticket_embed.add_field(name="Game Wallet", value=f"`{wallet_address}`", inline=False)
+            ticket_embed.add_field(name="In-Game Wallet", value=f"`{wallet_address}`", inline=False)
             ticket_embed.add_field(name="Item Purchased", value=self.item_name, inline=True)
-            ticket_embed.add_field(name="Price Paid", value=f"{self.item_price} {MONEY_PREFIX}", inline=True)
+            ticket_embed.add_field(name="Price Paid", value=f"{self.item_price} {config.MONEY_PREFIX}", inline=True)
             ticket_embed.add_field(name="Timestamp", value=self.timestamp, inline=False)
             ticket_embed.add_field(
                 name="⚠️ Status", 
@@ -104,7 +104,7 @@ class CancelModal(discord.ui.Modal, title="Cancel Ticket"):
         await self.original_message.edit(embed=embed, view=None)
         
         # Notify user in notifications channel
-        notifications_channel = self.bot.get_channel(NOTIFICATIONS_CHANNEL_ID)
+        notifications_channel = self.bot.get_channel(config.NOTIFICATIONS_CHANNEL_ID)
         if notifications_channel:
             user = self.bot.get_user(self.user_id)
             if user:
@@ -152,7 +152,7 @@ class TicketButtonsView(discord.ui.View):
         await interaction.message.edit(embed=embed, view=None)
         
         # Notify user in notifications channel
-        notifications_channel = self.bot.get_channel(NOTIFICATIONS_CHANNEL_ID)
+        notifications_channel = self.bot.get_channel(config.NOTIFICATIONS_CHANNEL_ID)
         if notifications_channel:
             user = self.bot.get_user(self.user_id)
             if user:
@@ -162,7 +162,7 @@ class TicketButtonsView(discord.ui.View):
                     color=0x00ff00
                 )
                 notify_embed.add_field(name="Item", value=self.item_name, inline=True)
-                notify_embed.add_field(name="Price", value=f"{self.item_price} {MONEY_PREFIX}", inline=True)
+                notify_embed.add_field(name="Price", value=f"{self.item_price} {config.MONEY_PREFIX}", inline=True)
                 notify_embed.add_field(name="Wallet", value=f"`{self.wallet}`", inline=False)
                 notify_embed.add_field(
                     name="🎉 Thank you!",
@@ -192,7 +192,7 @@ class Marketplace(commands.Cog):
         Usage: /shop
         """
         # Check if command is in the correct channel
-        if ctx.channel.id != COMMANDS_CHANNEL_ID:
+        if ctx.channel.id != config.COMMANDS_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
             await ctx.message.delete(delay=3)
             return
@@ -217,7 +217,7 @@ class Marketplace(commands.Cog):
         
         for item in items:
             embed.add_field(
-                name=f"{item['name']} - {item['price']} {MONEY_PREFIX}",
+                name=f"{item['name']} - {item['price']} {config.MONEY_PREFIX}",
                 value=item.get('description', 'No description'),
                 inline=False
             )
@@ -232,7 +232,7 @@ class Marketplace(commands.Cog):
         Usage: /buy Item Name
         """
         # Check if command is in the correct channel
-        if ctx.channel.id != COMMANDS_CHANNEL_ID:
+        if ctx.channel.id != config.COMMANDS_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
             await ctx.message.delete(delay=3)
             return
@@ -257,31 +257,31 @@ class Marketplace(commands.Cog):
             await ctx.send("❌ You don't have any money yet! Send some messages to earn coins.")
             return
         
-        current_balance = user_data.get(MONEY_PREFIX.lower(), 0)
+        current_balance = user_data.get(config.MONEY_PREFIX.lower(), 0)
         item_price = item['price']
         
         # Check if user has enough money
         if current_balance < item_price:
             embed = discord.Embed(
                 title="❌ Insufficient Funds",
-                description=f"You need **{item_price} {MONEY_PREFIX}** to buy **{item_name}**",
+                description=f"You need **{item_price} {config.MONEY_PREFIX}** to buy **{item_name}**",
                 color=0xff0000
             )
             embed.add_field(
                 name="Your Balance",
-                value=f"{current_balance} {MONEY_PREFIX}",
+                value=f"{current_balance} {config.MONEY_PREFIX}",
                 inline=True
             )
             embed.add_field(
                 name="Missing",
-                value=f"{item_price - current_balance} {MONEY_PREFIX}",
+                value=f"{item_price - current_balance} {config.MONEY_PREFIX}",
                 inline=True
             )
             await ctx.send(embed=embed)
             return
         
         # Deduct money
-        user_data[MONEY_PREFIX.lower()] = current_balance - item_price
+        user_data[config.MONEY_PREFIX.lower()] = current_balance - item_price
         
         # Update Redis cache
         await redis_client.insert(f"user:{user_id}", dumps(user_data))
@@ -297,7 +297,7 @@ class Marketplace(commands.Cog):
             "item_name": item_name,
             "item_price": item_price,
             "timestamp": timestamp_str,
-            "new_balance": user_data[MONEY_PREFIX.lower()]
+            "new_balance": user_data[config.MONEY_PREFIX.lower()]
         }
         await redis_client.insert(purchase_key, dumps(purchase_data))
         # Set expiration to 30 days
@@ -310,14 +310,14 @@ class Marketplace(commands.Cog):
             str(ctx.author),
             item_name,
             item_price,
-            user_data[MONEY_PREFIX.lower()],
+            user_data[config.MONEY_PREFIX.lower()],
             timestamp_str
         )
         await ctx.send(
-            f"✅ Purchase successful! Please provide your Game Wallet to claim your reward.",
+            f"✅ Purchase successful! Please provide your in-Game Wallet to claim your reward.",
             view=discord.ui.View().add_item(
                 discord.ui.Button(
-                    label="� Enter Game Wallet",
+                    label="💳 Enter your in-Game Wallet",
                     style=discord.ButtonStyle.primary,
                     custom_id=f"wallet_modal_{user_id}_{current_timestamp}"
                 )
@@ -342,7 +342,7 @@ class Marketplace(commands.Cog):
         Usage: /history
         """
         # Check if command is in the correct channel
-        if ctx.channel.id != COMMANDS_CHANNEL_ID:
+        if ctx.channel.id != config.COMMANDS_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
             await ctx.message.delete(delay=3)
             return
@@ -366,7 +366,7 @@ class Marketplace(commands.Cog):
         
         for purchase in purchases:
             embed.add_field(
-                name=f"{purchase['item_name']} - {purchase['item_price']} {MONEY_PREFIX}",
+                name=f"{purchase['item_name']} - {purchase['item_price']} {config.MONEY_PREFIX}",
                 value=f"Date: {purchase.get('timestamp', 'Unknown')}",
                 inline=False
             )

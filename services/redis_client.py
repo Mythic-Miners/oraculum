@@ -1,10 +1,10 @@
-from config import REDIS_CLOUD_URI
 import redis.asyncio as redis
+import config # type: ignore
 
 
 class RedisClient(object):
     def __init__(self):
-        self.pool = redis.ConnectionPool.from_url(REDIS_CLOUD_URI)
+        self.pool = redis.ConnectionPool.from_url(config.REDIS_CLOUD_URI)
         self.client = redis.Redis.from_pool(self.pool)
 
     async def insert(self, key, value):
