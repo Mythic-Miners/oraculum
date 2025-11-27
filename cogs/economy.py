@@ -3,7 +3,7 @@ from services.db_client import mongo_client
 from discord.ext import commands
 from json import dumps
 from time import time
-from config import *
+import config
 import discord
 
 
@@ -15,7 +15,7 @@ class Economy(commands.Cog):
     async def claim_daily_reward(self, ctx):
         """Claim your daily reward (once every 24 hours)"""
         # Check if command is in the correct channel
-        if ctx.channel.id != COMMANDS_CHANNEL_ID:
+        if ctx.channel.id != config.COMMANDS_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
             await ctx.message.delete(delay=3)
             return
@@ -54,14 +54,14 @@ class Economy(commands.Cog):
             # Create new user
             user_data = {
                 "user_id": user_id,
-                XP_POINTS_PREFIX.lower(): 0,
-                LEVEL_PREFIX.lower(): 1,
-                MONEY_PREFIX.lower(): STARTING_BALANCE
+                config.XP_POINTS_PREFIX.lower(): 0,
+                config.LEVEL_PREFIX.lower(): 1,
+                config.MONEY_PREFIX.lower(): config.STARTING_BALANCE
             }
         
         # Add daily reward
-        reward_amount = DAILY_REWARD + int(DAILY_REWARD * LEVEL_MULTIPLIER * user_data.get(LEVEL_PREFIX.lower(), 1))
-        user_data[MONEY_PREFIX.lower()] = user_data.get(MONEY_PREFIX.lower(), 0) + reward_amount
+        reward_amount = config.DAILY_REWARD + int(config.DAILY_REWARD * config.LEVEL_MULTIPLIER * user_data.get(config.LEVEL_PREFIX.lower(), 1))
+        user_data[config.MONEY_PREFIX.lower()] = user_data.get(config.MONEY_PREFIX.lower(), 0) + reward_amount
         
         # Update Redis cache
         await redis_client.insert(f"user:{user_id}", dumps(user_data))
@@ -80,13 +80,13 @@ class Economy(commands.Cog):
         
         # Send success message
         embed = discord.Embed(
-            title=f"{MONEY_EMOJI} Daily Reward Claimed!",
-            description=f"You received **{reward_amount} {MONEY_PREFIX}**!",
+            title=f"{config.MONEY_EMOJI} Daily Reward Claimed!",
+            description=f"You received **{reward_amount} {config.MONEY_PREFIX}**!",
             color=0x00ff00
         )
         embed.add_field(
             name="New Balance",
-            value=f"{user_data[MONEY_PREFIX.lower()]} {MONEY_PREFIX}",
+            value=f"{user_data[config.MONEY_PREFIX.lower()]} {config.MONEY_PREFIX}",
             inline=False
         )
         embed.set_footer(text="Come back tomorrow for another reward!")
@@ -97,7 +97,7 @@ class Economy(commands.Cog):
     async def claim_weekly_reward(self, ctx):
         """Claim your weekly reward (once every 7 days)"""
         # Check if command is in the correct channel
-        if ctx.channel.id != COMMANDS_CHANNEL_ID:
+        if ctx.channel.id != config.COMMANDS_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
             await ctx.message.delete(delay=3)
             return
@@ -137,14 +137,14 @@ class Economy(commands.Cog):
             # Create new user
             user_data = {
                 "user_id": user_id,
-                XP_POINTS_PREFIX.lower(): 0,
-                LEVEL_PREFIX.lower(): 1,
-                MONEY_PREFIX.lower(): STARTING_BALANCE
+                config.XP_POINTS_PREFIX.lower(): 0,
+                config.LEVEL_PREFIX.lower(): 1,
+                config.MONEY_PREFIX.lower(): config.STARTING_BALANCE
             }
         
         # Add weekly reward
-        reward_amount = WEEKLY_REWARD + int(WEEKLY_REWARD * LEVEL_MULTIPLIER * user_data.get(LEVEL_PREFIX.lower(), 1))
-        user_data[MONEY_PREFIX.lower()] = user_data.get(MONEY_PREFIX.lower(), 0) + reward_amount
+        reward_amount = config.WEEKLY_REWARD + int(config.WEEKLY_REWARD * config.LEVEL_MULTIPLIER * user_data.get(config.LEVEL_PREFIX.lower(), 1))
+        user_data[config.MONEY_PREFIX.lower()] = user_data.get(config.MONEY_PREFIX.lower(), 0) + reward_amount
         
         # Update Redis cache
         await redis_client.insert(f"user:{user_id}", dumps(user_data))
@@ -163,13 +163,13 @@ class Economy(commands.Cog):
         
         # Send success message
         embed = discord.Embed(
-            title=f"{MONEY_EMOJI} Weekly Reward Claimed!",
-            description=f"You received **{reward_amount} {MONEY_PREFIX}**!",
+            title=f"{config.MONEY_EMOJI} Weekly Reward Claimed!",
+            description=f"You received **{reward_amount} {config.MONEY_PREFIX}**!",
             color=0x00ff00
         )
         embed.add_field(
             name="New Balance",
-            value=f"{user_data[MONEY_PREFIX.lower()]} {MONEY_PREFIX}",
+            value=f"{user_data[config.MONEY_PREFIX.lower()]} {config.MONEY_PREFIX}",
             inline=False
         )
         embed.set_footer(text="Come back next week for another reward!")
@@ -180,7 +180,7 @@ class Economy(commands.Cog):
     async def check_balance(self, ctx, member: discord.Member = None):
         """Check your balance or another user's balance"""
         # Check if command is in the correct channel
-        if ctx.channel.id != COMMANDS_CHANNEL_ID:
+        if ctx.channel.id != config.COMMANDS_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
             await ctx.message.delete(delay=3)
             return
@@ -202,16 +202,16 @@ class Economy(commands.Cog):
                 await ctx.send(f"❌ {target.mention} doesn't have a balance yet!")
             return
         
-        balance = user_data.get(MONEY_PREFIX.lower(), 0)
+        balance = user_data.get(config.MONEY_PREFIX.lower(), 0)
         
         embed = discord.Embed(
-            title=f"{MONEY_EMOJI} Balance",
+            title=f"{config.MONEY_EMOJI} Balance",
             description=f"{'Your' if target == ctx.author else f'{target.name}\'s'} current balance",
             color=0x00ff00
         )
         embed.add_field(
-            name=MONEY_NAME,
-            value=f"**{balance} {MONEY_PREFIX}**",
+            name="Currency",
+            value=f"**{balance} {config.MONEY_PREFIX}**",
             inline=False
         )
         embed.set_thumbnail(url=target.display_avatar.url)

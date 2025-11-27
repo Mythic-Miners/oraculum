@@ -1,7 +1,8 @@
-from utils.helpers import sync_all_users_to_mongodb, sync_all_messages_to_mongodb, sync_all_reactions_to_mongodb, sync_all_voice_sessions_to_mongodb, sync_economy_claims_to_mongodb, sync_marketplace_purchases_to_mongodb
+from services.sync_manager import sync_all_data_to_mongodb
+from services.cache_manager import cleanup_all_expired_keys
 from services.db_client import mongo_client
 from discord.ext import commands
-from config import *
+import config
 import discord
 
 
@@ -11,7 +12,7 @@ class Admin(commands.Cog):
     
     async def is_admin_channel(self, ctx):
         """Check if command is being executed in admin channel"""
-        if ctx.channel.id != ADMIN_CHANNEL_ID:
+        if ctx.channel.id != config.ADMIN_CHANNEL_ID:
             await ctx.message.add_reaction("❌")
             await ctx.message.delete(delay=3)
             return False
@@ -27,34 +28,27 @@ class Admin(commands.Cog):
         await ctx.send("🔄 Starting manual synchronization...")
         
         try:
-            # Sync users
-            user_sync_count = await sync_all_users_to_mongodb()
-            await ctx.send(f"✅ Synced {user_sync_count} users to MongoDB")
-            
-            # Sync messages and delete from Redis
-            message_sync_count = await sync_all_messages_to_mongodb()
-            await ctx.send(f"✅ Synced {message_sync_count} messages to MongoDB")
-            
-            # Sync reactions and delete from Redis
-            reaction_sync_count = await sync_all_reactions_to_mongodb()
-            await ctx.send(f"✅ Synced {reaction_sync_count} reactions to MongoDB")
-            
-            # Sync voice sessions and delete from Redis
-            voice_sync_count = await sync_all_voice_sessions_to_mongodb()
-            await ctx.send(f"✅ Synced {voice_sync_count} voice sessions to MongoDB")
-            
-            # Sync economy claims and delete from Redis
-            economy_sync_count = await sync_economy_claims_to_mongodb()
-            await ctx.send(f"✅ Synced {economy_sync_count} economy claims to MongoDB")
-            
-            # Sync marketplace purchases and delete from Redis
-            purchases_sync_count = await sync_marketplace_purchases_to_mongodb()
-            await ctx.send(f"✅ Synced {purchases_sync_count} marketplace purchases to MongoDB")
-            
-            await ctx.send("✅ **Synchronization completed!**")
+            total_synced = await sync_all_data_to_mongodb()
+            await ctx.send(f"✅ **Synchronization completed!** Total items synced: {total_synced}")
             
         except Exception as e:
             await ctx.send(f"❌ Sync error: {e}")
+    
+    @commands.command(name="cleanup")
+    @commands.has_permissions(administrator=True)
+    async def cleanup_cache_command(self, ctx):
+        """Manual command to clean up expired Redis cache"""
+        if not await self.is_admin_channel(ctx):
+            return
+        
+        await ctx.send("🧹 Starting cache cleanup...")
+        
+        try:
+            total_cleaned = await cleanup_all_expired_keys()
+            await ctx.send(f"✅ **Cleanup completed!** Total keys processed: {total_cleaned}")
+            
+        except Exception as e:
+            await ctx.send(f"❌ Cleanup error: {e}")
     
     @commands.command(name="add_item")
     @commands.has_permissions(administrator=True)
@@ -93,7 +87,7 @@ class Admin(commands.Cog):
             color=0x00ff00
         )
         embed.add_field(name="Name", value=name, inline=True)
-        embed.add_field(name="Price", value=f"{price} {MONEY_PREFIX}", inline=True)
+        embed.add_field(name="Price", value=f"{price} {config.MONEY_PREFIX}", inline=True)
         embed.add_field(name="Description", value=description, inline=False)
         
         await ctx.send(embed=embed)
@@ -166,7 +160,7 @@ class Admin(commands.Cog):
         )
         embed.add_field(name="Item", value=name, inline=False)
         if price is not None:
-            embed.add_field(name="New Price", value=f"{price} {MONEY_PREFIX}", inline=True)
+            embed.add_field(name="New Price", value=f"{price} {config.MONEY_PREFIX}", inline=True)
         if description is not None:
             embed.add_field(name="New Description", value=description, inline=False)
         
@@ -228,7 +222,7 @@ class Admin(commands.Cog):
         for item in items:
             status = "✅" if item.get("available", True) else "❌"
             embed.add_field(
-                name=f"{status} {item['name']} - {item['price']} {MONEY_PREFIX}",
+                name=f"{status} {item['name']} - {item['price']} {config.MONEY_PREFIX}",
                 value=item.get('description', 'No description'),
                 inline=False
             )
@@ -256,25 +250,25 @@ class Admin(commands.Cog):
         if not user_data:
             user_data = {
                 "user_id": member.id,
-                XP_POINTS_PREFIX.lower(): 0,
-                LEVEL_PREFIX.lower(): 1,
-                MONEY_PREFIX.lower(): STARTING_BALANCE
+                config.XP_POINTS_PREFIX.lower(): 0,
+                config.LEVEL_PREFIX.lower(): 1,
+                config.MONEY_PREFIX.lower(): config.STARTING_BALANCE
             }
         
         # Add money
-        user_data[MONEY_PREFIX.lower()] = user_data.get(MONEY_PREFIX.lower(), 0) + amount
+        user_data[config.MONEY_PREFIX.lower()] = user_data.get(config.MONEY_PREFIX.lower(), 0) + amount
         
         # Update Redis
         await redis_client.insert(f"user:{member.id}", dumps(user_data))
         
         embed = discord.Embed(
-            title=f"{MONEY_EMOJI} Money Given",
-            description=f"Gave **{amount} {MONEY_PREFIX}** to {member.mention}",
+            title=f"{config.MONEY_EMOJI} Money Given",
+            description=f"Gave **{amount} {config.MONEY_PREFIX}** to {member.mention}",
             color=0x00ff00
         )
         embed.add_field(
             name="New Balance",
-            value=f"{user_data[MONEY_PREFIX.lower()]} {MONEY_PREFIX}",
+            value=f"{user_data[config.MONEY_PREFIX.lower()]} {config.MONEY_PREFIX}",
             inline=False
         )
         
@@ -303,20 +297,20 @@ class Admin(commands.Cog):
             return
         
         # Take money
-        current_balance = user_data.get(MONEY_PREFIX.lower(), 0)
-        user_data[MONEY_PREFIX.lower()] = max(0, current_balance - amount)
+        current_balance = user_data.get(config.MONEY_PREFIX.lower(), 0)
+        user_data[config.MONEY_PREFIX.lower()] = max(0, current_balance - amount)
         
         # Update Redis
         await redis_client.insert(f"user:{member.id}", dumps(user_data))
         
         embed = discord.Embed(
-            title=f"{MONEY_EMOJI} Money Taken",
-            description=f"Took **{amount} {MONEY_PREFIX}** from {member.mention}",
+            title=f"{config.MONEY_EMOJI} Money Taken",
+            description=f"Took **{amount} {config.MONEY_PREFIX}** from {member.mention}",
             color=0xff0000
         )
         embed.add_field(
             name="New Balance",
-            value=f"{user_data[MONEY_PREFIX.lower()]} {MONEY_PREFIX}",
+            value=f"{user_data[config.MONEY_PREFIX.lower()]} {config.MONEY_PREFIX}",
             inline=False
         )
         
@@ -343,20 +337,20 @@ class Admin(commands.Cog):
         if not user_data:
             user_data = {
                 "user_id": member.id,
-                XP_POINTS_PREFIX.lower(): 0,
-                LEVEL_PREFIX.lower(): 1,
-                MONEY_PREFIX.lower(): STARTING_BALANCE
+                config.XP_POINTS_PREFIX.lower(): 0,
+                config.LEVEL_PREFIX.lower(): 1,
+                config.MONEY_PREFIX.lower(): config.STARTING_BALANCE
             }
         
         # Set level
-        user_data[LEVEL_PREFIX.lower()] = level
+        user_data[config.LEVEL_PREFIX.lower()] = level
         
         # Update Redis
         await redis_client.insert(f"user:{member.id}", dumps(user_data))
         
         embed = discord.Embed(
-            title=f"{LEVEL_EMOJI} Level Set",
-            description=f"Set {member.mention}'s level to **{LEVEL_PREFIX} {level}**",
+            title=f"{config.LEVEL_EMOJI} Level Set",
+            description=f"Set {member.mention}'s level to **{config.LEVEL_PREFIX} {level}**",
             color=0x0099ff
         )
         
